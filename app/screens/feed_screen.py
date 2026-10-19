@@ -1,4 +1,7 @@
+import os
+
 from kivy.metrics import dp
+from kivy.uix.image import AsyncImage
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDIconButton
@@ -10,6 +13,8 @@ from app.services.denuncia_service import DenunciaService
 
 COR_CURTIDO = (0.85, 0.20, 0.35, 1)
 COR_NAO_CURTIDO = (0.55, 0.55, 0.55, 1)
+ALTURA_IMAGEM = dp(180)
+ALTURA_CARD = dp(380)
 
 
 class FeedScreen(MDScreen):
@@ -52,16 +57,51 @@ class FeedScreen(MDScreen):
     def _card_feed(self, d) -> MDCard:
         card = MDCard(
             orientation="vertical",
-            padding=dp(12),
-            spacing=dp(6),
+            padding=dp(0),
+            spacing=dp(0),
             size_hint_y=None,
-            height=dp(170),
+            height=ALTURA_CARD,
             elevation=2,
             radius=[dp(10)],
             md_bg_color=(1, 1, 1, 1),
         )
 
-        card.add_widget(MDLabel(
+        card.add_widget(self._area_imagem(d.anexo_path))
+        card.add_widget(self._area_conteudo(d))
+
+        return card
+
+    def _area_imagem(self, anexo_path):
+        if anexo_path and os.path.isfile(anexo_path):
+            return AsyncImage(
+                source=anexo_path,
+                size_hint_y=None,
+                height=ALTURA_IMAGEM,
+                allow_stretch=True,
+                keep_ratio=True,
+            )
+        placeholder = MDBoxLayout(
+            orientation="vertical",
+            size_hint_y=None,
+            height=ALTURA_IMAGEM,
+            md_bg_color=(0.92, 0.95, 0.90, 1),
+        )
+        placeholder.add_widget(MDLabel(
+            text="Sem foto anexada",
+            halign="center",
+            theme_text_color="Secondary",
+            font_style="Caption",
+        ))
+        return placeholder
+
+    def _area_conteudo(self, d):
+        box = MDBoxLayout(
+            orientation="vertical",
+            padding=dp(12),
+            spacing=dp(4),
+        )
+
+        box.add_widget(MDLabel(
             text=f"[b]{d.categoria}[/b]",
             markup=True,
             theme_text_color="Custom",
@@ -72,7 +112,7 @@ class FeedScreen(MDScreen):
 
         bairro_txt = d.bairro or "Bairro não identificado"
         data_fmt = d.criado_em.strftime("%d/%m/%Y %H:%M")
-        card.add_widget(MDLabel(
+        box.add_widget(MDLabel(
             text=f"{bairro_txt} · CEP {d.cep} · {data_fmt}",
             theme_text_color="Secondary",
             font_style="Caption",
@@ -80,14 +120,16 @@ class FeedScreen(MDScreen):
             height=dp(20),
         ))
 
-        card.add_widget(MDLabel(
+        box.add_widget(MDLabel(
             text=d.descricao,
             theme_text_color="Primary",
-            shorten=True,
-            shorten_from="right",
             max_lines=2,
         ))
 
+        box.add_widget(self._area_acao(d))
+        return box
+
+    def _area_acao(self, d):
         acao = MDBoxLayout(
             orientation="horizontal",
             size_hint_y=None,
@@ -115,10 +157,8 @@ class FeedScreen(MDScreen):
         )
         acao.add_widget(botao_like)
         acao.add_widget(contagem)
-        acao.add_widget(MDLabel(text=""))  # spacer
-        card.add_widget(acao)
-
-        return card
+        acao.add_widget(MDLabel(text=""))
+        return acao
 
     def _toggle_like(self, denuncia_id: int, label_contagem: MDLabel, botao: MDIconButton):
         app = MDApp.get_running_app()
