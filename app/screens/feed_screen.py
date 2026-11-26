@@ -10,6 +10,7 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.screen import MDScreen
 
 from app.services.denuncia_service import DenunciaService
+from app.services.recomendacao_service import ItemRecomendado, RecomendacaoService
 
 COR_CURTIDO = (0.85, 0.20, 0.35, 1)
 COR_NAO_CURTIDO = (0.55, 0.55, 0.55, 1)
@@ -21,6 +22,7 @@ class FeedScreen(MDScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.service = DenunciaService()
+        self.recomendacao = RecomendacaoService()
         self._ids_curtidas: set = set()
 
     def on_pre_enter(self):
@@ -39,9 +41,9 @@ class FeedScreen(MDScreen):
             return
 
         self._ids_curtidas = self.service.ids_curtidas(app.current_user.id)
-        denuncias = self.service.listar_feed()
+        itens = self.recomendacao.feed_para(app.current_user.id)
 
-        if not denuncias:
+        if not itens:
             container.add_widget(
                 MDLabel(
                     text="Ainda não há denúncias registradas.",
@@ -51,10 +53,11 @@ class FeedScreen(MDScreen):
             )
             return
 
-        for d in denuncias:
-            container.add_widget(self._card_feed(d))
+        for item in itens:
+            container.add_widget(self._card_feed(item))
 
-    def _card_feed(self, d) -> MDCard:
+    def _card_feed(self, item: ItemRecomendado) -> MDCard:
+        d = item.denuncia
         card = MDCard(
             orientation="vertical",
             padding=dp(0),
@@ -67,7 +70,7 @@ class FeedScreen(MDScreen):
         )
 
         card.add_widget(self._area_imagem(d.anexo_path))
-        card.add_widget(self._area_conteudo(d))
+        card.add_widget(self._area_conteudo(d, item.motivo))
 
         return card
 
@@ -94,12 +97,24 @@ class FeedScreen(MDScreen):
         ))
         return placeholder
 
-    def _area_conteudo(self, d):
+    def _area_conteudo(self, d, motivo):
         box = MDBoxLayout(
             orientation="vertical",
             padding=dp(12),
             spacing=dp(4),
         )
+
+        if motivo:
+            box.add_widget(MDLabel(
+                text=motivo,
+                theme_text_color="Custom",
+                text_color=(0.20, 0.40, 0.75, 1),
+                font_style="Caption",
+                size_hint_y=None,
+                height=dp(18),
+                shorten=True,
+                shorten_from="right",
+            ))
 
         box.add_widget(MDLabel(
             text=f"[b]{d.categoria}[/b]",

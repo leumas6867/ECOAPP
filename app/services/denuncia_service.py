@@ -66,9 +66,6 @@ class DenunciaService:
     def listar_minhas(self, usuario_id: int) -> List[Denuncia]:
         return self.repository.listar(usuario_id=usuario_id)
 
-    def listar_feed(self) -> List[Denuncia]:
-        return self.repository.listar(usuario_id=None)
-
     def deletar(self, denuncia_id: int, usuario_id: int) -> bool:
         return self.repository.deletar(denuncia_id, usuario_id)
 

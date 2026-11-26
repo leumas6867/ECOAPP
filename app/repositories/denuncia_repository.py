@@ -13,6 +13,13 @@ class AgregacaoBairroMes:
     total: int
 
 
+@dataclass
+class SinalInteresse:
+    categoria: str
+    bairro: Optional[str]
+    peso: int
+
+
 class DenunciaRepository:
     def salvar(self, denuncia: Denuncia) -> Denuncia:
         with get_connection() as conn:
@@ -102,6 +109,24 @@ class DenunciaRepository:
                 (usuario_id,),
             ).fetchall()
         return {row["denuncia_id"] for row in rows}
+
+    def sinais_interesse(self, usuario_id: int) -> List[SinalInteresse]:
+        with get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT categoria, bairro, 2 AS peso
+                FROM denuncias WHERE usuario_id = ?
+                UNION ALL
+                SELECT d.categoria, d.bairro, 1 AS peso
+                FROM curtidas c JOIN denuncias d ON d.id = c.denuncia_id
+                WHERE c.usuario_id = ?
+                """,
+                (usuario_id, usuario_id),
+            ).fetchall()
+        return [
+            SinalInteresse(categoria=r["categoria"], bairro=r["bairro"], peso=r["peso"])
+            for r in rows
+        ]
 
     def agregar_por_bairro_mes(
         self, desde: datetime
